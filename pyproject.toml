@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -7,6 +7,8 @@ name = "cardtable"
 version = "0.1.0"
 description = "A small event-driven framework for connecting triggers, services, and widgets"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "croniter>=6,<7",
@@ -29,11 +31,27 @@ dependencies = [
     "watchdog>=6,<8",
 ]
 
+[project.urls]
+Homepage = "https://github.com/ikeboo/CardTable"
+Repository = "https://github.com/ikeboo/CardTable"
+Issues = "https://github.com/ikeboo/CardTable/issues"
+
+[tool.hatch.build]
+exclude = ["**/.DS_Store"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["cardtable"]
 
 [tool.hatch.build.targets.sdist]
-include = ["cardtable", "examples", "tests", "README.md", "pyproject.toml"]
+include = [
+    "cardtable",
+    "examples",
+    "tests",
+    "assets",
+    "LICENSE",
+    "README.md",
+    "pyproject.toml",
+]
 
 [tool.ruff]
 target-version = "py310"

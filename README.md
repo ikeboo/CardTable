@@ -5,25 +5,21 @@ An event-driven Python GUI framework with a card-based layout<br>
 
 ## 🚀 Setup
 
-Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+Requires Python 3.10+. We recommend using
+[uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```bash
-git clone https://github.com/ikeboo/CardTable.git
-cd CardTable
-uv sync --locked
+uv venv --python 3.10
+source .venv/bin/activate
+uv pip install "git+https://github.com/ikeboo/CardTable.git"
 ```
+
+On Windows, use `.venv\Scripts\activate` instead.
 
 ## ⚡️ Quick Start
 
-```bash
-uv run python examples/quick_start.py
-```
-
-## 🛠️ Create Your App
-
-### 🤵‍♂️ Dealer
-
-Subclass `Dealer` and define UI components and triggers in `setup()`, called once during initialization.
+Save the following as `app.py` in your own project directory. After installation,
+`cardtable` can be imported from any directory.
 
 ```python
 import cardtable as c
@@ -41,6 +37,20 @@ class App(c.Dealer):
 if __name__ == "__main__":
     App().start()
 ```
+
+Run your app:
+
+```bash
+python app.py
+```
+
+If you cloned the repository, you can also run `python examples/quick_start.py`.
+
+## 🛠️ Create Your App
+
+### 🤵‍♂️ Dealer
+
+Subclass `Dealer` and define UI components and triggers in `setup()`, called once during initialization, as shown above.
 
 ### 🃏 Layout Cards & Elements
 
@@ -144,3 +154,7 @@ class App(c.Dealer):
         # Show a modal message with OK and Cancel buttons.
         c.show_message("Hello")
 ```
+
+## Acknowledgments
+
+Thanks to [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) for the GUI toolkit that powers CardTable.

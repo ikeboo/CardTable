@@ -1,4 +1,4 @@
-"""USBCamera monitoring sample: uv run python -m examples.sample_app."""
+"""USBCamera monitoring sample: python examples/sample_app.py."""
 
 import cardtable as c
 
