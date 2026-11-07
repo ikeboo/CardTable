@@ -1,5 +1,5 @@
-<div align="center"><img src="assets/logo.png" alt="Logo" width="640">
-An event-driven Python GUI framework with a card-based layout
+<div align="center"><img src="assets/logo.png" alt="Logo" width="640"><br>
+An event-driven Python GUI framework with a card-based layout<br>
 <img src="assets/ui.jpg" alt="CardTable UI" width="640"></div>
 
 
