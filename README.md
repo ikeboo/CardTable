@@ -109,7 +109,7 @@ class App(c.Dealer):
 | `WebhookTrigger` | An HTTP POST with JSON text/image data |
 | `JRPCTrigger` | A JSON-RPC request over TCP |
 
-### Set and Get Values
+### 📊 Set and Get Values
 
 Use `get()` to read an element's value and `set()` to update it.
 
