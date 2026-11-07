@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CardTable Inference API Guide</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.7; }
+    body { max-width: 920px; margin: auto; padding: 28px 22px 64px; }
+    h1, h2 { line-height: 1.3; } h2 { margin-top: 2.4rem; }
+    a { color: #397bd6; } pre { padding: 18px; overflow: auto; border-radius: 8px; background: #8881; }
+    code { font-family: ui-monospace, monospace; font-size: .92em; }
+    table { width: 100%; border-collapse: collapse; } th, td { border-bottom: 1px solid #8885; padding: 10px; text-align: left; }
+    .lead { font-size: 1.1rem; } .note { border-left: 3px solid #397bd6; padding-left: 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <p>API GUIDE</p>
+    <h1>CardTable Inference API</h1>
+    <p class="lead">名前付きのテキストと画像を送り、推論結果を同じJSON形式で取得できます。</p>
+    <p>送信先：<code>$endpoint</code></p>
+    <nav><a href="#send">送信例</a> · <a href="#format">データ形式</a> · <a href="#receipt">結果取得</a> · <a href="#errors">エラー</a> · <a href="/docs">操作できるAPI仕様</a> · <a href="/openapi.json">OpenAPI JSON</a></nav>
+  </header>
+  <main>
+    <h2>利用するURL</h2>
+    <table>
+      <thead><tr><th>メソッド・URL</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST $path</code></td><td>イベントを作成し、推論結果を待って返す</td></tr>
+        <tr><td><code>POST $path?wait=false</code></td><td>待たずにイベントIDと状態を返す</td></tr>
+        <tr><td><code>GET $path/{event_id}</code></td><td>状態と推論結果を取得</td></tr>
+        <tr><td><code>GET /docs</code></td><td>自動生成のSwagger UI（操作用スクリプトはCDNから取得）</td></tr>
+        <tr><td><code>GET /guide</code></td><td>このオフライン対応ガイドを表示</td></tr>
+        <tr><td><code>GET /openapi.json</code></td><td>ツール向け仕様を取得</td></tr>
+      </tbody>
+    </table>
+    <p>$auth_description</p>
+    <p>仕様書とOpenAPI JSONはトークンなしで閲覧できます。実際のトークンはこのページに表示されません。</p>
+    <h2 id="send">Pythonから送信する</h2>
+    <p>画像をBase64に変換して、任意の名前で指定します。<code>requests</code> を利用する例です。</p>
+<pre><code>import base64
+from pathlib import Path
+import requests
+
+def image(path, content_type):
+    path = Path(path)
+    return {
+        "filename": path.name,
+        "content_type": content_type,
+        "content_base64": base64.b64encode(path.read_bytes()).decode("ascii"),
+    }
+
+response = requests.post(
+    $endpoint_literal,
+    ${auth_python}json={
+        "texts": {
+            "instruction": "2枚の画像を比較してください",
+            "language": "日本語",
+        },
+        "images": {
+            "before": image("before.jpg", "image/jpeg"),
+            "after": image("after.png", "image/png"),
+        },
+    },
+    timeout=$client_timeout,
+)
+body = response.json()
+response.raise_for_status()
+if body["status"] == "succeeded":
+    print(body["result"]["texts"])
+    for name, result_image in body["result"]["images"].items():
+        result_bytes = base64.b64decode(result_image["content_base64"])
+        print(name, len(result_bytes))
+else:
+    print("結果は後で取得できます:", response.headers["Location"])</code></pre>
+    <h2>curlからテキストを送信する</h2>
+<pre><code>curl --fail-with-body -X POST "$endpoint"${auth_curl} \
+  -H "Content-Type: application/json" \
+  --data-raw '{"texts":{"instruction":"こんにちは"}}'</code></pre>
+    <h2 id="format">JSONのデータ形式</h2>
+    <p>本文はUTF-8の <code>application/json</code> です。<code>texts</code> と <code>images</code> の片方は省略できます。少なくとも1項目を指定してください。</p>
+    <table>
+      <thead><tr><th>項目</th><th>型・ルール</th></tr></thead>
+      <tbody>
+        <tr><td><code>texts</code></td><td>名前と文字列のオブジェクト。名前は空文字不可。値は空文字も可能。</td></tr>
+        <tr><td><code>images</code></td><td>名前と画像オブジェクトの対応。名前は空文字不可。</td></tr>
+        <tr><td><code>images.*.filename</code></td><td>空でないファイル名。メタデータとして扱い、保存先には使用しません。</td></tr>
+        <tr><td><code>images.*.content_type</code></td><td><code>image/jpeg</code>、<code>image/png</code> などの <code>image/*</code>。</td></tr>
+        <tr><td><code>images.*.content_base64</code></td><td>空でない画像バイト列のBase64文字列。改行・空白・data URLの接頭辞は付けません。</td></tr>
+      </tbody>
+    </table>
+    <p>定義されていない項目とJSONの重複キーはエラーになります。テキストと画像で同じ名前を使うことは可能です。</p>
+<pre><code>$example</code></pre>
+    <h2>サイズと件数</h2>
+    <ul>
+      <li>リクエスト本文全体：最大 <strong>$max_body_bytes バイト</strong>。JSONとBase64の付加分を含みます。</li>
+      <li>テキストと画像の合計：最大 <strong>$max_items 項目</strong>。</li>
+      <li>本文読み取りの無通信タイムアウト：<strong>$request_timeout 秒</strong>。</li>
+      <li>POSTで結果を待つ時間：最大 <strong>$response_timeout 秒</strong>。待機時間にはキュー待ちも含みます。</li>
+      <li>結果の <code>result</code> オブジェクト：最大 <strong>$max_result_bytes バイト</strong>（JSON・Base64込み）。</li>
+      <li>圧縮本文には対応しません。本文サイズはchunked送信でも制限します。</li>
+    </ul>
+    <p>画像はBase64を検証してバイト列に戻します。画像としてのデコード・形式の検証・ファイル保存は行いません。</p>
+    <h2 id="receipt">推論結果のレスポンス</h2>
+<pre><code>HTTP/1.1 201 Created
+Location: $path/0123456789abcdef0123456789abcdef
+
+{
+  "event_id": "0123456789abcdef0123456789abcdef",
+  "text_count": 2,
+  "image_count": 2,
+  "status": "succeeded",
+  "result": {"texts": {"answer": "推論結果です"}, "images": {}},
+  "error": null
+}</code></pre>
+    <p class="note"><strong>結果は <code>status</code> で判断します。</strong> 既定のPOSTは完了時に201と結果を返します。待機上限を超えると202と <code>pending</code> を返し、推論は継続します。<code>?wait=false</code> は201と <code>pending</code> を返します。</p>
+    <p><code>result.texts</code> は名前付きの文字列、<code>result.images</code> は入力画像と同じ <code>filename</code>・<code>content_type</code>・<code>content_base64</code> です。</p>
+    <p><code>Location</code> のURLへGETすると状態と結果を取得できます。認証設定時はGETにも同じBearerトークンを付けてください。GETは取得成功なら200で、推論失敗時も状態をJSONで返します。</p>
+    <table><thead><tr><th>status</th><th>意味</th></tr></thead><tbody>
+      <tr><td>pending</td><td>キュー待ち、または推論中。resultはnull。</td></tr>
+      <tr><td>succeeded</td><td>完了。resultからテキスト・画像を取得できます。</td></tr>
+      <tr><td>failed</td><td>推論例外、戻り値の不正、または結果サイズ超過。errorを確認してください。</td></tr>
+      <tr><td>cancelled</td><td>結果取得前に受信口が停止しました。実行中の推論処理の強制終了を意味しません。</td></tr>
+    </tbody></table>
+    <p>履歴は最大 <strong>$history_size 件</strong> の結果をメモリに保持します。入力本文は履歴に残しません。未完了イベントは削除せず、枠がすべて未完了なら新規受付を503で拒否します。枠が必要になると古い完了結果から削除します。画像結果が大きい場合は保持件数を小さく設定してください。</p>
+    <p>履歴から削除されたIDと、受信口の停止・再起動前のIDは404になります。自動再送・重複排除は行いません。同じ内容を再送すると別の推論になります。クライアントの切断や待機タイムアウトだけでは、受付済みの推論は取り消されません。</p>
+    <h2 id="errors">エラー</h2>
+<pre><code>{"error":{"code":"invalid_payload","message":"Body must be a UTF-8 JSON object"}}</code></pre>
+    <table>
+      <thead><tr><th>HTTP</th><th>原因</th></tr></thead>
+      <tbody>
+        <tr><td>400</td><td>JSON・項目・Base64が不正、重複キー、本文不足、対応外の転送方式</td></tr>
+        <tr><td>401</td><td>トークンが未指定または不一致</td></tr>
+        <tr><td>404</td><td>URLやIDが不明、または受付履歴の保持対象外</td></tr>
+        <tr><td>405</td><td>HTTPメソッドが不正。<code>Allow</code> ヘッダーを確認してください。</td></tr>
+        <tr><td>408</td><td>リクエスト本文の読み取りがタイムアウト</td></tr>
+        <tr><td>413</td><td>本文サイズまたは項目数の上限超過</td></tr>
+        <tr><td>415</td><td>Content-Type・文字コード・圧縮方式が未対応、または画像の宣言が <code>image/*</code> でない</td></tr>
+        <tr><td>503</td><td>待ち行列・未完了履歴の枠が満杯、処理中の受付を抑止、または停止中。停止時に待機中だった応答はcancelledを返します。</td></tr>
+        <tr><td>500</td><td>待機中の推論が失敗した場合はevent_id・status・errorを返します。予期しないサーバーエラーも500です。</td></tr>
+      </tbody>
+    </table>
+    <p>入力検証が失敗した場合は、一部だけを受け付けることはありません。</p>
+  </main>
+</body>
+</html>

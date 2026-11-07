@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+.vscode/
+
+# Speckit
+specs/
+.speckit/
+
+# Virtual environments
+.venv
+
+.github
+.ruff_cache
+
+# testing
+benchmarks
+.pytest_cache
+.experiments/
+examples/ml_app/
+examples/outputs/
+
+# logging
+logs/
